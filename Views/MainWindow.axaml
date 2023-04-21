@@ -1,0 +1,79 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:Eve_Settings_Management.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="Eve_Settings_Management.Views.MainWindow"
+        Icon="/Assets/cs-logo.ico"
+        Title="Character Settings Tool"
+        TransparencyLevelHint="AcrylicBlur"
+		ExtendClientAreaToDecorationsHint="True"
+        Background="Transparent"
+        WindowStartupLocation="CenterScreen"
+        MinWidth="800" MinHeight="450"
+        Width="800" Height="450">
+
+	<Design.DataContext>
+		<vm:MainWindowViewModel />
+	</Design.DataContext>
+
+	<Panel>
+		<ExperimentalAcrylicBorder IsHitTestVisible="False">
+			<ExperimentalAcrylicBorder.Material>
+				<ExperimentalAcrylicMaterial
+					BackgroundSource="Digger"
+					TintColor="Black"
+					TintOpacity="1"
+					MaterialOpacity="0.65" />
+			</ExperimentalAcrylicBorder.Material>
+		</ExperimentalAcrylicBorder>
+
+		<Panel Margin="40,20">
+			<DockPanel Margin="0,15,0,0">
+				<DockPanel Margin="0,0,0,10" DockPanel.Dock="Top">
+					<Grid>
+						<TextBox Padding="42,8,0,0" FontFamily="Shentox 2" Text="{Binding FolderPathText}" Watermark="Select Eve Settings Folder"></TextBox>
+						<Button  Command="{Binding SelectFolderDialogCommand}">
+							<PathIcon Data="{StaticResource folder_regular}" />
+						</Button>
+					</Grid>
+				</DockPanel>
+				<Grid>
+
+					<ListBox x:Name="CopyFromListBox" MinWidth="270" Items="{Binding CopyFromCollection}" SelectedItem="{Binding FromSelectedItem}" SelectionMode="Single" HorizontalAlignment="Left">
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<TextBlock FontFamily="Shentox 2" Text="{Binding CharacterName}" ToolTip.Tip="{Binding CharacterId}" />
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+
+					<Panel Background="Black" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="25" Height="66" Width="66">
+						<Image Height="64" Width="64" Source="/Assets/charph.png" />
+						<Image Height="64" Width="64" Source="{Binding ElementName=CopyFromListBox, Path=SelectedItem.CharacterPotrait}" />
+					</Panel>
+
+					<TextBlock Text="{Binding ElementName=CopyFromListBox, Path=SelectedItem.CharacterName, Mode=OneWay, FallbackValue=Character}" FontFamily="Shentox 2" HorizontalAlignment="Center" />
+
+					<Button FontFamily="Shentox 2" HorizontalContentAlignment="Center" MinWidth="110" Command="{Binding CopyCommand}" Content="Copy" HorizontalAlignment="Center" />
+
+					<ProgressBar IsIndeterminate="False" Value="{Binding ProgressValue, Mode=OneWay}" Maximum="100" MinHeight="15" MinWidth="150" Minimum="0" Margin="0,100,0,0" ShowProgressText="True" HorizontalAlignment="Center"></ProgressBar>
+
+					<ToggleSwitch IsChecked="{Binding TakeBackup}" Margin="-60,200,0,0" HorizontalAlignment="Center" Content="Backup"></ToggleSwitch>
+					<Button HorizontalAlignment="Center" Height="40" Width="40" Margin="100,200,0,0" ToolTip.Tip="BackupManager" Command="{Binding BackupFolderDialogCommand}">
+						<PathIcon Data="{StaticResource arrow_rotate_counterclockwise_regular}" />
+					</Button>
+
+					<ListBox x:Name="CopyToListBox" MinWidth="270" Items="{Binding CopyToCollection}" SelectedItems="{Binding ToSelectedItems, Mode=TwoWay}" SelectionMode="Multiple, Toggle" HorizontalAlignment="Right">
+						<ListBox.ItemTemplate>
+							<DataTemplate>
+								<TextBlock FontFamily="Shentox 2" Text="{Binding CharacterName}" ToolTip.Tip="{Binding CharacterId}" />
+							</DataTemplate>
+						</ListBox.ItemTemplate>
+					</ListBox>
+				</Grid>
+			</DockPanel>
+		</Panel>
+	</Panel>
+</Window>
