@@ -38,7 +38,7 @@ namespace Eve_Settings_Management.ViewModels
                     Directory = ResolvePath()
                 };
 
-                string result = await folderDialog.ShowAsync(MainWindow.Instance);
+                string? result = await folderDialog.ShowAsync(MainWindow.Instance);
                 if (result != string.Empty)
                 {
                     FolderPathText = result;
@@ -133,7 +133,7 @@ namespace Eve_Settings_Management.ViewModels
                         Debug.WriteLine($"Passed {item.CharacterName}");
                         Debug.WriteLine("------------------------------------------------------------------");
                     }
-                    ProgressValue += 100 / ToSelectedItems.Count;
+                    ProgressValue += 102 / ToSelectedItems.Count;
                     Debug.WriteLine($"Progress current value: {progressValue}");
                     await Task.Delay(TimeSpan.FromMilliseconds(300));
                 }
