@@ -5,6 +5,10 @@
     <Nullable>enable</Nullable>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+	 <PublishSingleFile>true</PublishSingleFile>
+	 <RuntimeIdentifiers>win10-x64</RuntimeIdentifiers>
+	 <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+	 <DebugType>embedded</DebugType>
   </PropertyGroup>
 
   <ItemGroup>

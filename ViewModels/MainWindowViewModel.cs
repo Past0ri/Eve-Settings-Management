@@ -37,12 +37,18 @@ namespace Eve_Settings_Management.ViewModels
                 {
                     Directory = ResolvePath()
                 };
-
-                string? result = await folderDialog.ShowAsync(MainWindow.Instance);
-                if (result != string.Empty)
+                if (MainWindow.Instance is not null)
                 {
-                    FolderPathText = result;
-                    await Task.Run(() => GetFiles(result));
+                    string? result = await folderDialog.ShowAsync(MainWindow.Instance);
+
+                    if (result != string.Empty)
+                    {
+                        FolderPathText = result;
+                        if (result != null)
+                        {
+                            await Task.Run(() => GetFiles(result));
+                        }
+                    }
                 }
             });
 
@@ -50,7 +56,10 @@ namespace Eve_Settings_Management.ViewModels
             {
                 OpenFileDialog fileDialog = new OpenFileDialog();
                 fileDialog.Directory = backupPath;
-                await Task.Run(() => fileDialog.ShowAsync(MainWindow.Instance));
+                if (MainWindow.Instance is not null)
+                {
+                    await Task.Run(() => fileDialog.ShowAsync(MainWindow.Instance));
+                }
             });
         }
 
@@ -130,11 +139,10 @@ namespace Eve_Settings_Management.ViewModels
                     }
                     else
                     {
-                        Debug.WriteLine($"Passed {item.CharacterName}");
+                        Debug.WriteLine($"Passed {item.CharacterName} as source");
                         Debug.WriteLine("------------------------------------------------------------------");
                     }
                     ProgressValue += 102 / ToSelectedItems.Count;
-                    Debug.WriteLine($"Progress current value: {progressValue}");
                     await Task.Delay(TimeSpan.FromMilliseconds(300));
                 }
             }
