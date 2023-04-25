@@ -284,7 +284,7 @@ namespace Eve_Settings_Management.ViewModels
             dynamic? json = await JsonHandler($"https://esi.evetech.net/latest/characters/{characterid}/?datasource=tranquility");
             if (json is not null && json.error != "Character has been deleted!")
             {
-                string? characterName = json.name;
+                string characterName = json.name;
                 Character character = new()
                 {
                     CharacterName = characterName,
