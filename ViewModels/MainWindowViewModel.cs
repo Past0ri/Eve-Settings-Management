@@ -22,7 +22,7 @@ namespace Eve_Settings_Management.ViewModels
         private static readonly HttpClient s_httpClient = new();
         private string? backupPath;
         private string? folderPathText;
-        private int? progressValue;
+        private int? progressBarValue;
 
         public MainWindowViewModel()
         {
@@ -73,10 +73,10 @@ namespace Eve_Settings_Management.ViewModels
             set => this.RaiseAndSetIfChanged(ref folderPathText, value);
         }
 
-        public int? ProgressValue
+        public int? ProgressBarValue
         {
-            get => progressValue;
-            set => this.RaiseAndSetIfChanged(ref progressValue, value);
+            get => progressBarValue;
+            set => this.RaiseAndSetIfChanged(ref progressBarValue, value);
         }
 
         public AvaloniaList<object>? ToSelectedItems { get; set; }
@@ -90,7 +90,7 @@ namespace Eve_Settings_Management.ViewModels
             //Copy character files
             string dateNow = DateTime.Now.ToString("dd-MM-yyyy-(hh-mm-ss)");
             string settingsBackup = $"backup/settings_Backup{dateNow}";
-            ProgressValue = 0;
+            ProgressBarValue = 0;
             if (backupPath != null && ToSelectedItems != null && FromSelectedItem != null)
             {
                 foreach (var (item, character) in from Character? item in ToSelectedItems
@@ -142,7 +142,8 @@ namespace Eve_Settings_Management.ViewModels
                         Debug.WriteLine($"Passed {item.CharacterName} as source");
                         Debug.WriteLine("------------------------------------------------------------------");
                     }
-                    ProgressValue += 102 / ToSelectedItems.Count;
+                    ProgressBarValue += 100 / ToSelectedItems.Count + 1;
+                    Debug.WriteLine($"Percent: {progressBarValue}");
                     await Task.Delay(TimeSpan.FromMilliseconds(300));
                 }
             }
@@ -281,7 +282,7 @@ namespace Eve_Settings_Management.ViewModels
         {
             Debug.WriteLine(characterid);
             dynamic? json = await JsonHandler($"https://esi.evetech.net/latest/characters/{characterid}/?datasource=tranquility");
-            if (json.error != "Character has been deleted!")
+            if (json is not null && json.error != "Character has been deleted!")
             {
                 string? characterName = json.name;
                 Character character = new()

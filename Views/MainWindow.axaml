@@ -58,7 +58,7 @@
 
 					<Button FontFamily="Shentox 2" HorizontalContentAlignment="Center" MinWidth="110" Command="{Binding CopyCommand}" Content="Copy" HorizontalAlignment="Center" />
 
-					<ProgressBar IsIndeterminate="False" Value="{Binding ProgressValue, Mode=OneWay}" Maximum="100" MinHeight="15" MinWidth="150" Minimum="0" Margin="0,100,0,0" ShowProgressText="True" HorizontalAlignment="Center"></ProgressBar>
+					<ProgressBar IsIndeterminate="False" Value="{Binding ProgressBarValue, Mode=OneWay}" Maximum="100" MinHeight="15" MinWidth="150" Minimum="0" Margin="0,100,0,0" ShowProgressText="True" HorizontalAlignment="Center"></ProgressBar>
 
 					<ToggleSwitch IsChecked="{Binding TakeBackup}" Margin="-60,200,0,0" HorizontalAlignment="Center" Content="Backup"></ToggleSwitch>
 					<Button HorizontalAlignment="Center" Height="40" Width="40" Margin="100,200,0,0" ToolTip.Tip="BackupManager" Command="{Binding BackupFolderDialogCommand}">
