@@ -44,7 +44,7 @@ namespace Eve_Settings_Management.ViewModels
                     if (result != string.Empty)
                     {
                         FolderPathText = result;
-                        if (result != null)
+                        if (result is not null)
                         {
                             await Task.Run(() => GetFiles(result));
                         }
@@ -91,7 +91,7 @@ namespace Eve_Settings_Management.ViewModels
             string dateNow = DateTime.Now.ToString("dd-MM-yyyy-(hh-mm-ss)");
             string settingsBackup = $"backup/settings_Backup{dateNow}";
             ProgressBarValue = 0;
-            if (backupPath != null && ToSelectedItems != null && FromSelectedItem != null)
+            if (backupPath is not null && ToSelectedItems is not null && FromSelectedItem is not null)
             {
                 foreach (var (item, character) in from Character? item in ToSelectedItems
                                                   let character = FromSelectedItem
@@ -100,7 +100,7 @@ namespace Eve_Settings_Management.ViewModels
                     if (character.CharacterName != item.CharacterName)
                     {
                         string? fileName = Path.GetFileName(item.CharacterFilePath);
-                        if (fileName != null)
+                        if (fileName is not null)
                         {
                             await Task.Run(() =>
                             {
@@ -111,7 +111,7 @@ namespace Eve_Settings_Management.ViewModels
                                     string? backupFilePath = System.IO.Path.Combine(backUpDirectory.FullName, fileName);
                                     try
                                     {
-                                        if (item.CharacterFilePath != null)
+                                        if (item.CharacterFilePath is not null)
                                             File.Copy(sourceFileName: item.CharacterFilePath,
                                                        backupFilePath,
                                                        true);
@@ -123,7 +123,7 @@ namespace Eve_Settings_Management.ViewModels
                                 }
                                 try
                                 {
-                                    if (character.CharacterFilePath != null && item.CharacterFilePath != null)
+                                    if (character.CharacterFilePath is not null && item.CharacterFilePath is not null)
                                         File.Copy(character.CharacterFilePath, item.CharacterFilePath, true);
                                 }
                                 catch (IOException copyError)
