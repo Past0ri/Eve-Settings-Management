@@ -1,17 +1,20 @@
-﻿using Avalonia.Collections;
-using Avalonia.Controls;
+using Avalonia.Collections;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Eve_Settings_Management.Models;
 using Eve_Settings_Management.Views;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using ReactiveUI;
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 
@@ -23,6 +26,8 @@ namespace Eve_Settings_Management.ViewModels
         private string? backupPath;
         private string? folderPathText;
         private int? progressBarValue;
+        private Character? fromSelectedItem;
+        private bool takeBackup;
 
         public MainWindowViewModel()
         {
@@ -33,34 +38,55 @@ namespace Eve_Settings_Management.ViewModels
 
             SelectFolderDialogCommand = ReactiveCommand.Create(async () =>
             {
-                OpenFolderDialog folderDialog = new()
+                if (MainWindow.Instance is null)
                 {
-                    Directory = ResolvePath()
-                };
-                if (MainWindow.Instance is not null)
-                {
-                    string? result = await folderDialog.ShowAsync(MainWindow.Instance);
+                    return;
+                }
 
-                    if (result != string.Empty)
+                string defaultPath = ResolvePath();
+                IStorageFolder? startFolder = null;
+                if (Directory.Exists(defaultPath))
+                {
+                    startFolder = await MainWindow.Instance.StorageProvider.TryGetFolderFromPathAsync(defaultPath);
+                }
+
+                var result = await MainWindow.Instance.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                {
+                    AllowMultiple = false,
+                    SuggestedStartLocation = startFolder
+                });
+
+                var selectedFolder = result.FirstOrDefault();
+                if (selectedFolder is not null)
+                {
+                    FolderPathText = selectedFolder.Path.LocalPath;
+                    if (!string.IsNullOrWhiteSpace(FolderPathText))
                     {
-                        FolderPathText = result;
-                        if (result is not null)
-                        {
-                            await Task.Run(() => GetFiles(result));
-                        }
+                        await Task.Run(() => GetFiles(FolderPathText));
                     }
                 }
             });
 
             BackupFolderDialogCommand = ReactiveCommand.Create(async () =>
             {
-                OpenFileDialog fileDialog = new OpenFileDialog();
-                fileDialog.Directory = backupPath;
-                if (MainWindow.Instance is not null)
+                if (MainWindow.Instance is null || string.IsNullOrWhiteSpace(backupPath) || !Directory.Exists(backupPath))
                 {
-                    await Task.Run(() => fileDialog.ShowAsync(MainWindow.Instance));
+                    return;
+                }
+
+                var startFolder = await MainWindow.Instance.StorageProvider.TryGetFolderFromPathAsync(backupPath);
+                if (startFolder is not null)
+                {
+                    await MainWindow.Instance.StorageProvider.OpenFolderPickerAsync(new FolderPickerOpenOptions
+                    {
+                        AllowMultiple = false,
+                        SuggestedStartLocation = startFolder,
+                        Title = "Backup folder"
+                    });
                 }
             });
+
+            _ = InitializeDefaultFolderAsync();
         }
 
         public ICommand CopyCommand { get; }
@@ -79,19 +105,30 @@ namespace Eve_Settings_Management.ViewModels
             set => this.RaiseAndSetIfChanged(ref progressBarValue, value);
         }
 
-        public AvaloniaList<object>? ToSelectedItems { get; set; }
-        private AvaloniaList<Character> CopyFromCollection { get; set; } = new AvaloniaList<Character>();
-        private AvaloniaList<Character> CopyToCollection { get; set; } = new AvaloniaList<Character>();
-        private Character? FromSelectedItem { get; set; }
-        private bool TakeBackup { get; set; }
+        public AvaloniaList<object> ToSelectedItems { get; set; } = new AvaloniaList<object>();
+
+        public AvaloniaList<Character> CopyFromCollection { get; } = new AvaloniaList<Character>();
+
+        public AvaloniaList<Character> CopyToCollection { get; } = new AvaloniaList<Character>();
+
+        public Character? FromSelectedItem
+        {
+            get => fromSelectedItem;
+            set => this.RaiseAndSetIfChanged(ref fromSelectedItem, value);
+        }
+
+        public bool TakeBackup
+        {
+            get => takeBackup;
+            set => this.RaiseAndSetIfChanged(ref takeBackup, value);
+        }
 
         public async Task CopyCharacterFiles()
         {
-            //Copy character files
             string dateNow = DateTime.Now.ToString("dd-MM-yyyy-(hh-mm-ss)");
             string settingsBackup = $"backup/settings_Backup{dateNow}";
             ProgressBarValue = 0;
-            if (backupPath is not null && ToSelectedItems is not null && FromSelectedItem is not null)
+            if (backupPath is not null && ToSelectedItems.Count > 0 && FromSelectedItem is not null)
             {
                 foreach (var (item, character) in from Character? item in ToSelectedItems
                                                   let character = FromSelectedItem
@@ -106,30 +143,36 @@ namespace Eve_Settings_Management.ViewModels
                             {
                                 if (TakeBackup)
                                 {
-                                    DirectoryInfo? backUpDirectory = Directory.CreateDirectory(Path.Combine(path1: backupPath,
+                                    DirectoryInfo backUpDirectory = Directory.CreateDirectory(Path.Combine(path1: backupPath,
                                                                             path2: settingsBackup));
-                                    string? backupFilePath = System.IO.Path.Combine(backUpDirectory.FullName, fileName);
+                                    string backupFilePath = Path.Combine(backUpDirectory.FullName, fileName);
                                     try
                                     {
                                         if (item.CharacterFilePath is not null)
+                                        {
                                             File.Copy(sourceFileName: item.CharacterFilePath,
-                                                       backupFilePath,
-                                                       true);
+                                                      backupFilePath,
+                                                      true);
+                                        }
                                     }
                                     catch (IOException copyError)
                                     {
                                         Debug.WriteLine(copyError.Message);
                                     }
                                 }
+
                                 try
                                 {
                                     if (character.CharacterFilePath is not null && item.CharacterFilePath is not null)
+                                    {
                                         File.Copy(character.CharacterFilePath, item.CharacterFilePath, true);
+                                    }
                                 }
                                 catch (IOException copyError)
                                 {
                                     Debug.WriteLine(copyError.Message);
                                 }
+
                                 Debug.WriteLine($"Name:{character.CharacterName} ID:{character.CharacterId} copied to Name:{item.CharacterName} ID:{item.CharacterId}");
                                 Debug.WriteLine($"From {character.CharacterFilePath}");
                                 Debug.WriteLine($"To {item.CharacterFilePath}");
@@ -142,6 +185,7 @@ namespace Eve_Settings_Management.ViewModels
                         Debug.WriteLine($"Passed {item.CharacterName} as source");
                         Debug.WriteLine("------------------------------------------------------------------");
                     }
+
                     ProgressBarValue += 100 / ToSelectedItems.Count + 1;
                     Debug.WriteLine($"Percent: {progressBarValue}");
                     await Task.Delay(TimeSpan.FromMilliseconds(300));
@@ -153,84 +197,92 @@ namespace Eve_Settings_Management.ViewModels
         {
             await Task.Run(async () =>
             {
-                //Gets character files from folder
                 ClearCollection();
-                string[] characterFiles = Directory.GetFiles(dir);
-                foreach (string characterFilePath in characterFiles)
+                if (!Directory.Exists(dir))
                 {
-                    //Looks for core_char files
-                    string characterFile = System.IO.Path.GetFileName(characterFilePath);
-                    if (characterFile.StartsWith("core_char_"))
-                    {
-                        string characterID = PathToID(characterFile);
-                        if (!string.IsNullOrEmpty(characterID))
-                        {
-                            if (characterID.All(char.IsDigit))
-                            {
-                                if (characterID != "_")
-                                {
-                                    await GetCharacter(characterID, characterFilePath);
-                                }
-                            }
-                            else
-                            {
-                                Debug.WriteLine("No id found, skipped.");
-                            }
-                        }
-                        else
-                        {
-                            Debug.WriteLine("No id found, skipped.");
-                        }
-                    }
+                    return;
                 }
+
+                var characterEntries = Directory
+                    .EnumerateFiles(dir, "core_char_*", SearchOption.TopDirectoryOnly)
+                    .Select(path => new { Path = path, Id = PathToID(path) })
+                    .Where(item => !string.IsNullOrWhiteSpace(item.Id) && item.Id.All(char.IsDigit))
+                    .GroupBy(item => item.Id, StringComparer.Ordinal)
+                    .Select(group => group.First())
+                    .ToList();
+
+                var semaphore = new SemaphoreSlim(8);
+                var tasks = characterEntries.Select(async entry =>
+                {
+                    await semaphore.WaitAsync();
+                    try
+                    {
+                        await GetCharacter(entry.Id, entry.Path);
+                    }
+                    finally
+                    {
+                        semaphore.Release();
+                    }
+                });
+
+                await Task.WhenAll(tasks);
             });
         }
 
         public string ResolvePath()
         {
-            //Navigates to ccp\eve in localappdata
             string localData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
             string eveFolder = $"{localData}\\CCP\\EVE\\";
-            string[] eveFolderList = Directory.GetDirectories(eveFolder);
-            foreach (string eveFolderItem in eveFolderList)
+            if (!Directory.Exists(eveFolder))
             {
-                //Looks for tranquility foldername varies by eve install location
-                if (eveFolderItem.EndsWith("_eve_sharedcache_tq_tranquility"))
-                {
-                    string tranqFolder = Path.Combine(eveFolder,
-                                                      eveFolderItem);
-                    string[] tranqFolderList = Directory.GetDirectories(tranqFolder);
-                    backupPath = tranqFolder;
-                    foreach (string tranqFolderItem in tranqFolderList)
-                    {
-                        //Looks for settings_Default folder
-                        if (tranqFolderItem.EndsWith("Default"))
-                        {
-                            string settingsPath = Path.Combine(tranqFolder,
-                                                               tranqFolderItem);
-                            return settingsPath;
-                        }
-                    }
-                    //If default forlder not found direct to tranq folder
-                    return tranqFolder;
-                }
+                return eveFolder;
             }
-            //If neither default or tranq folder not found return eve folder
-            return eveFolder;
+
+            string? tranqFolder = Directory
+                .EnumerateDirectories(eveFolder)
+                .FirstOrDefault(path =>
+                    Path.GetFileName(path).Contains("_eve_sharedcache_tq_tranquility", StringComparison.OrdinalIgnoreCase));
+
+            if (tranqFolder is null)
+            {
+                return eveFolder;
+            }
+
+            backupPath = tranqFolder;
+            var settingsFolders = Directory
+                .EnumerateDirectories(tranqFolder)
+                .Where(path => Path.GetFileName(path).StartsWith("settings_", StringComparison.OrdinalIgnoreCase))
+                .ToList();
+
+            if (settingsFolders.Count == 0)
+            {
+                return tranqFolder;
+            }
+
+            string? defaultFolder = settingsFolders.FirstOrDefault(path =>
+                Path.GetFileName(path).Contains("default", StringComparison.OrdinalIgnoreCase));
+
+            if (!string.IsNullOrEmpty(defaultFolder))
+            {
+                return defaultFolder;
+            }
+
+            return settingsFolders
+                .OrderByDescending(path => Directory.GetLastWriteTimeUtc(path))
+                .First();
         }
 
-        private static async Task<dynamic?> JsonHandler(string url)
+        private static async Task<JObject?> JsonHandler(string url)
         {
-            HttpClient client = new HttpClient();
             try
             {
                 Debug.WriteLine(url);
-                HttpResponseMessage response = await client.GetAsync(url);
+                HttpResponseMessage response = await s_httpClient.GetAsync(url);
                 string responseBody = await response.Content.ReadAsStringAsync();
-                dynamic? jsonToObject = JsonConvert.DeserializeObject(responseBody);
+                JObject? jsonToObject = JsonConvert.DeserializeObject<JObject>(responseBody);
                 return jsonToObject;
             }
-            catch (System.Net.WebException e)
+            catch (HttpRequestException e)
             {
                 Debug.WriteLine($"Failed to connect ESI'{e}'");
                 return null;
@@ -239,9 +291,8 @@ namespace Eve_Settings_Management.ViewModels
 
         private static string PathToID(string filePath)
         {
-            //Parses filepath to id
-            string fileName = System.IO.Path.GetFileName(filePath);
-            string pattern = "[0-9]+";
+            string fileName = Path.GetFileName(filePath);
+            const string pattern = "[0-9]+";
             Match m = Regex.Match(fileName, pattern, RegexOptions.IgnoreCase);
             return m.Value;
         }
@@ -281,18 +332,29 @@ namespace Eve_Settings_Management.ViewModels
         private async Task GetCharacter(string characterid, string characterfilepath)
         {
             Debug.WriteLine(characterid);
-            dynamic? json = await JsonHandler($"https://esi.evetech.net/latest/characters/{characterid}/?datasource=tranquility");
-            if (json is not null && json.error != "Character has been deleted!")
+            JObject? json = await JsonHandler($"https://esi.evetech.net/latest/characters/{characterid}/?datasource=tranquility");
+            if (json is not null && string.Equals(json["error"]?.ToString(), "Character has been deleted!", StringComparison.Ordinal))
             {
-                string characterName = json.name;
-                Character character = new()
-                {
-                    CharacterName = characterName,
-                    CharacterId = characterid,
-                    CharacterFilePath = characterfilepath,
-                    CharacterPotrait = await LoadPotrait(characterid)
-                };
-                AddCharacter(character);
+                return;
+            }
+
+            string characterName = json?["name"]?.ToString() ?? $"Character {characterid}";
+            Character character = new()
+            {
+                CharacterName = characterName,
+                CharacterId = characterid,
+                CharacterFilePath = characterfilepath
+            };
+            AddCharacter(character);
+        }
+
+        private async Task InitializeDefaultFolderAsync()
+        {
+            string defaultPath = ResolvePath();
+            FolderPathText = defaultPath;
+            if (!string.IsNullOrWhiteSpace(defaultPath) && Directory.Exists(defaultPath))
+            {
+                await GetFiles(defaultPath);
             }
         }
     }

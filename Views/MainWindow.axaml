@@ -41,7 +41,7 @@
 				</DockPanel>
 				<Grid>
 
-					<ListBox x:Name="CopyFromListBox" MinWidth="270" Items="{Binding CopyFromCollection}" SelectedItem="{Binding FromSelectedItem}" SelectionMode="Single" HorizontalAlignment="Left">
+					<ListBox x:Name="CopyFromListBox" MinWidth="270" ItemsSource="{Binding CopyFromCollection}" SelectedItem="{Binding FromSelectedItem}" SelectionMode="Single" HorizontalAlignment="Left">
 						<ListBox.ItemTemplate>
 							<DataTemplate>
 								<TextBlock FontFamily="Shentox 2" Text="{Binding CharacterName}" ToolTip.Tip="{Binding CharacterId}" />
@@ -65,7 +65,7 @@
 						<PathIcon Data="{StaticResource arrow_rotate_counterclockwise_regular}" />
 					</Button>
 
-					<ListBox x:Name="CopyToListBox" MinWidth="270" Items="{Binding CopyToCollection}" SelectedItems="{Binding ToSelectedItems, Mode=TwoWay}" SelectionMode="Multiple, Toggle" HorizontalAlignment="Right">
+					<ListBox x:Name="CopyToListBox" MinWidth="270" ItemsSource="{Binding CopyToCollection}" SelectedItems="{Binding ToSelectedItems, Mode=TwoWay}" SelectionMode="Multiple, Toggle" HorizontalAlignment="Right">
 						<ListBox.ItemTemplate>
 							<DataTemplate>
 								<TextBlock FontFamily="Shentox 2" Text="{Binding CharacterName}" ToolTip.Tip="{Binding CharacterId}" />
