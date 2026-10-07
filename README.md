@@ -1,6 +1,6 @@
 # Eve Settings Management
 
-A small desktop tool for copying **EVE Online** character settings from one character profile to one or more others.
+A small desktop tool for copying **EVE Online** character settings from one character profile to one or more.
 
 ## What It Does
 - Finds your EVE settings folder automatically.
